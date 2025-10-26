@@ -102,6 +102,14 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTracks, selectedIndex]);
 
+  function todayDateString(): string {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   async function loadCsv() {
     setLoading(true);
     setError(null);
@@ -109,14 +117,16 @@ export default function App() {
     setTracks([]);
 
     try {
-      // CSV placed next to this module
-      const url = new URL("./beatport_top100_2025-10-25.csv", import.meta.url).href;
+      // CSV placed next to this module — filename uses today's date
+      const dateStr = todayDateString();
+      const csvRelative = `./beatport_top100_${dateStr}.csv`;
+      const url = new URL(csvRelative, import.meta.url).href;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to load CSV: ${res.status}`);
+      if (!res.ok) throw new Error(`Failed to load CSV: ${res.status} (${csvRelative})`);
       const text = await res.text();
       const parsed = parseCsvTracks(text);
       if (!parsed.length) {
-        setError("CSV parsed but contains no tracks.");
+        setError(`CSV parsed but contains no tracks. (${csvRelative})`);
       } else {
         setAllTracks(parsed);
       }
@@ -201,6 +211,10 @@ export default function App() {
           </tbody>
         </table>
       )}
+
+      <div style={{ marginTop: 12, fontSize: 12, color: "#444" }}>
+        CSV file loaded for date: {todayDateString()} (filename: beatport_top100_{todayDateString()}.csv)
+      </div>
     </div>
   );
 }
