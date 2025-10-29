@@ -81,6 +81,7 @@ export default function App() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadedDate, setLoadedDate] = useState<string | null>(null);
 
   useEffect(() => {
     loadCsv();
@@ -102,39 +103,59 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTracks, selectedIndex]);
 
-  function todayDateString(): string {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
 
   async function loadCsv() {
     setLoading(true);
     setError(null);
     setAllTracks([]);
     setTracks([]);
+    setLoadedDate(null);
 
-    try {
-      // CSV placed next to this module — filename uses today's date
-      const dateStr = todayDateString();
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    // try today first, then yesterday
+    const candidates = [today, yesterday];
+    let lastErr: any = null;
+
+    for (const d of candidates) {
+      const dateStr = formatDate(d);
       const csvRelative = `./beatport_top100_${dateStr}.csv`;
-      const url = new URL(csvRelative, import.meta.url).href;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to load CSV: ${res.status} (${csvRelative})`);
-      const text = await res.text();
-      const parsed = parseCsvTracks(text);
-      if (!parsed.length) {
-        setError(`CSV parsed but contains no tracks. (${csvRelative})`);
-      } else {
+      try {
+        const url = new URL(csvRelative, import.meta.url).href;
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          // couldn't fetch this date's file, try next
+          lastErr = new Error(`No file for ${dateStr}: ${res.status} ${res.statusText}`);
+          continue;
+        }
+
+        const text = await res.text();
+        const parsed = parseCsvTracks(text);
+
+        if (!parsed.length) {
+          // file exists but contains no usable tracks -> try previous day
+          lastErr = new Error(`CSV parsed but contains no tracks for ${dateStr} (${csvRelative})`);
+          continue;
+        }
+
+        // success: set data and return
         setAllTracks(parsed);
+        setLoadedDate(dateStr);
+        setError(null);
+        setLoading(false);
+        return;
+      } catch (err: any) {
+        lastErr = err;
+        continue;
       }
-    } catch (err: any) {
-      setError(err?.message ?? "Unknown error loading CSV");
-    } finally {
-      setLoading(false);
     }
+
+    // if we get here, neither today nor yesterday produced usable data
+    setLoading(false);
+    setError(lastErr?.message ?? "Failed to load CSV for today or yesterday");
   }
 
   function parseCsvTracks(csvText: string): Track[] {
@@ -161,6 +182,13 @@ export default function App() {
       out.push({ genre, title, artist: artist || undefined, rank });
     }
     return out;
+  }
+
+  function formatDate(date: Date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   return (
@@ -213,7 +241,7 @@ export default function App() {
       )}
 
       <div style={{ marginTop: 12, fontSize: 12, color: "#444" }}>
-        CSV file loaded for date: {todayDateString()} (filename: beatport_top100_{todayDateString()}.csv)
+        CSV file loaded for date: {loadedDate ?? "unknown"} (filename: beatport_top100_{loadedDate ?? "unknown"}.csv)
       </div>
     </div>
   );
