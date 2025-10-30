@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-type Track = { genre: string; title: string; artist?: string; rank?: number };
+type Track = { genre: string; title: string; artist?: string; rank?: number; date?: string };
 type Genre = { name: string; url: string };
 
 const GENRES: Genre[] = [
@@ -94,7 +94,7 @@ export default function App() {
       if (!res.ok) {
         throw new Error(`API error: ${res.status} ${res.statusText}`);
       }
-      const rows: any[] = await res.json();
+      const rows: Track[] = await res.json();
       if (!rows.length) {
         throw new Error("No tracks found in database");
       }
@@ -106,12 +106,12 @@ export default function App() {
       }));
       setAllTracks(tracksData);
       // Find the latest date
-      const dates = rows.map(r => r.date);
-      const latestDate = dates.reduce((a, b) => a > b ? a : b);
+      const dates = rows.map(r => r.date).filter(date => date !== undefined);
+      const latestDate = dates.length > 0 ? dates.reduce((a, b) => a! > b! ? a : b) : null;
       setLoadedDate(latestDate);
       setError(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);
     }
