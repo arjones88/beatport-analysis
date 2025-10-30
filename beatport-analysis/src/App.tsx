@@ -51,29 +51,7 @@ function slugFromUrl(url: string) {
   }
 }
 
-function parseRow(line: string): string[] {
-  const result: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      result.push(cur);
-      cur = "";
-    } else {
-      cur += ch;
-    }
-  }
-  result.push(cur);
-  return result.map(s => s.trim());
-}
+
 
 export default function App() {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -84,7 +62,7 @@ export default function App() {
   const [loadedDate, setLoadedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCsv();
+    loadTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,92 +82,42 @@ export default function App() {
   }, [allTracks, selectedIndex]);
 
 
-  async function loadCsv() {
+  async function loadTracks() {
     setLoading(true);
     setError(null);
     setAllTracks([]);
     setTracks([]);
     setLoadedDate(null);
 
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
-    // try today first, then yesterday
-    const candidates = [today, yesterday];
-    let lastErr: any = null;
-
-    for (const d of candidates) {
-      const dateStr = formatDate(d);
-      const csvRelative = `./beatport_top100_${dateStr}.csv`;
-      try {
-        const url = new URL(csvRelative, import.meta.url).href;
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          // couldn't fetch this date's file, try next
-          lastErr = new Error(`No file for ${dateStr}: ${res.status} ${res.statusText}`);
-          continue;
-        }
-
-        const text = await res.text();
-        const parsed = parseCsvTracks(text);
-
-        if (!parsed.length) {
-          // file exists but contains no usable tracks -> try previous day
-          lastErr = new Error(`CSV parsed but contains no tracks for ${dateStr} (${csvRelative})`);
-          continue;
-        }
-
-        // success: set data and return
-        setAllTracks(parsed);
-        setLoadedDate(dateStr);
-        setError(null);
-        setLoading(false);
-        return;
-      } catch (err: any) {
-        lastErr = err;
-        continue;
+    try {
+      const res = await fetch('http://localhost:3001/api/tracks');
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
       }
+      const rows: any[] = await res.json();
+      if (!rows.length) {
+        throw new Error("No tracks found in database");
+      }
+      const tracksData: Track[] = rows.map(r => ({
+        genre: r.genre,
+        title: r.title,
+        artist: r.artist,
+        rank: r.rank,
+      }));
+      setAllTracks(tracksData);
+      // Find the latest date
+      const dates = rows.map(r => r.date);
+      const latestDate = dates.reduce((a, b) => a > b ? a : b);
+      setLoadedDate(latestDate);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    // if we get here, neither today nor yesterday produced usable data
-    setLoading(false);
-    setError(lastErr?.message ?? "Failed to load CSV for today or yesterday");
   }
 
-  function parseCsvTracks(csvText: string): Track[] {
-    const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-    if (lines.length === 0) return [];
 
-    const headers = parseRow(lines[0]).map(h => h.replace(/^"|"$/g, "").toLowerCase());
-    const idxGenre = headers.findIndex(h => /genre/.test(h));
-    const idxTitle = headers.findIndex(h => /title|release|track|name/.test(h));
-    const idxArtist = headers.findIndex(h => /artist|artists|byartist/.test(h));
-    const idxRank = headers.findIndex(h => /rank|position|pos|order/.test(h));
-
-    const out: Track[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseRow(lines[i]).map(c => c.replace(/^"|"$/g, ""));
-      const genre = idxGenre >= 0 ? (cols[idxGenre] || "").trim() : "";
-      const title = idxTitle >= 0 ? (cols[idxTitle] || "").trim() : (cols[1] || "").trim();
-      const artist = idxArtist >= 0 ? (cols[idxArtist] || "").trim() : (cols[2] || "").trim();
-      const rankRaw = idxRank >= 0 ? (cols[idxRank] || "").trim() : (cols[3] || "").trim();
-      const rankNum = rankRaw ? Number(rankRaw.replace(/\D/g, "")) : undefined;
-      const rank = typeof rankNum === "number" && !isNaN(rankNum) ? rankNum : undefined;
-
-      if (!title) continue;
-      out.push({ genre, title, artist: artist || undefined, rank });
-    }
-    return out;
-  }
-
-  function formatDate(date: Date) {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
 
   return (
     <div className="App">
@@ -209,7 +137,7 @@ export default function App() {
           ))}
         </select>
 
-        <button onClick={loadCsv} style={{ marginLeft: 12 }} disabled={loading}>
+        <button onClick={loadTracks} style={{ marginLeft: 12 }} disabled={loading}>
           Reload
         </button>
       </div>
@@ -241,7 +169,7 @@ export default function App() {
       )}
 
       <div style={{ marginTop: 12, fontSize: 12, color: "#444" }}>
-        CSV file loaded for date: {loadedDate ?? "unknown"} (filename: beatport_top100_{loadedDate ?? "unknown"}.csv)
+        Data loaded from database for date: {loadedDate ?? "unknown"}
       </div>
     </div>
   );

@@ -1,27 +1,34 @@
 from typing import List, Dict, Optional
-import csv
 import time
 import random
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import requests
 from bs4 import BeautifulSoup
 from datetime import date
+import psycopg2
+from psycopg2.extras import execute_batch
 
 #!/usr/bin/env python3
 """
 beatport.py
 
-Scrape Beatport Top 100 charts for a list of genres and produce a single CSV:
-columns: genre_slug, rank, title, artists
+Scrape Beatport Top 100 charts for a list of genres and write results to PostgreSQL.
 
 Requirements:
-  pip install requests beautifulsoup4
+  pip install requests beautifulsoup4 psycopg2-binary
+
+Environment (defaults provided):
+  PGHOST (default 192.168.1.152)
+  PGPORT (default 5432)
+  PGDATABASE (default beatport)
+  PGUSER (default postgres)
+  PGPASSWORD (default empty)
 
 Usage:
-  python beatport.py
+   python beatport.py
 """
-
-
-OUT_CSV = f"beatport_top100_{date.today().isoformat()}.csv"
 
 # Genre pages to scrape
 GENRE_URLS = [
@@ -87,7 +94,7 @@ def fetch_url(session: requests.Session, url: str, max_retries: int = 3, backoff
 def parse_chart(html: str) -> List[Dict[str, str]]:
   """
   Try several heuristics to extract tracks from a Beatport Top 100 page.
-  Returns list of dicts with keys: title, artists
+  Returns list of dicts with keys: title, artists, rank
   """
   soup = BeautifulSoup(html, "html.parser")
 
@@ -97,13 +104,11 @@ def parse_chart(html: str) -> List[Dict[str, str]]:
   rows = soup.select('div[data-testid="tracks-table-row"]')
   if rows:
     for idx, row in enumerate(rows, start=1):
-      # Title: an <a> with a title attr (and often href containing "/track")
       title_elem = row.select_one('a[title][href*="/track"]') or row.select_one('a[title]')
       title = ""
       if title_elem:
         title = title_elem.get("title") or title_elem.get_text(" ", strip=True)
 
-      # Artists: div whose class contains "ArtistNames" (robust to hashed class names)
       artists_elem = row.select_one('div[class*="ArtistNames"]') or row.select_one('.ArtistNames')
       artists = ""
       if artists_elem:
@@ -116,19 +121,18 @@ def parse_chart(html: str) -> List[Dict[str, str]]:
       if not title and not artists:
         continue
 
-      results.append({"rank": str(idx), "title": title, "artists": artists})
+      results.append({"rank": idx, "title": title, "artists": artists})
       if len(results) >= 100:
         break
 
     return results
 
-  # Fallback: Try a few selectors that commonly match Beatport track entries
   candidate_selectors = [
-    "li.bucket-item",           # common container
-    "li.buk-track",             # alternative class
-    "li.track",                 # generic
-    "div.bucket-track",         # alternative markup
-    "div.track",                # generic div
+    "li.bucket-item",
+    "li.buk-track",
+    "li.track",
+    "div.bucket-track",
+    "div.track",
   ]
 
   items = []
@@ -138,12 +142,10 @@ def parse_chart(html: str) -> List[Dict[str, str]]:
       items = found
       break
 
-  # If nothing found, fallback: try to find chart rows by a known class fragment
   if not items:
-    items = soup.select("[class*=bucket]")[:200]  # attempt a broad match
+    items = soup.select("[class*=bucket]")[:200]
 
   for idx, item in enumerate(items, start=1):
-    # extract title
     title_elem = None
     for tsel in [
       ".buk-track-primary-title",
@@ -158,7 +160,6 @@ def parse_chart(html: str) -> List[Dict[str, str]]:
       if title_elem and title_elem.get_text(strip=True):
         break
 
-    # extract artists (may include multiple)
     artists_elem = None
     for asel in [
       ".buk-track-artists",
@@ -175,20 +176,17 @@ def parse_chart(html: str) -> List[Dict[str, str]]:
     title = title_elem.get_text(" ", strip=True) if title_elem else ""
     artists = ""
     if artists_elem:
-      # get all anchor texts (artist links) if any, otherwise full text
       artist_links = artists_elem.select("a")
       if artist_links:
         artists = " & ".join(a.get_text(" ", strip=True) for a in artist_links)
       else:
         artists = artists_elem.get_text(" ", strip=True)
 
-    # Some pages present data differently; skip empty rows
     if not title and not artists:
       continue
 
-    results.append({"rank": str(idx), "title": title, "artists": artists})
+    results.append({"rank": idx, "title": title, "artists": artists})
 
-    # stop after 100 entries
     if len(results) >= 100:
       break
 
@@ -196,13 +194,11 @@ def parse_chart(html: str) -> List[Dict[str, str]]:
 
 
 def genre_slug_from_url(url: str) -> str:
-  # extract the 'genre/SLUG' part
   parts = url.split("/")
   try:
     idx = parts.index("genre")
     return parts[idx + 1]
   except ValueError:
-    # fallback: use entire URL as slug
     return url
 
 
@@ -226,25 +222,84 @@ def scrape_all(genres: List[str]) -> List[Dict[str, str]]:
       row = {"genre": slug, "rank": t["rank"], "title": t["title"], "artists": t["artists"]}
       all_rows.append(row)
 
-    # polite random delay to reduce load
     time.sleep(1.0 + random.random() * 1.5)
 
   return all_rows
 
 
-def write_csv(rows: List[Dict[str, str]], out_path: str) -> None:
-  fieldnames = ["genre", "title", "artists", "rank"]
-  with open(out_path, "w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=fieldnames)
-    writer.writeheader()
-    for r in rows:
-      writer.writerow(r)
-  print(f"Wrote {len(rows)} rows to {out_path}")
+def _pg_conn():
+  host = os.getenv("PGHOST", "192.168.1.152")
+  port = int(os.getenv("PGPORT", "5432"))
+  db = os.getenv("PGDATABASE", "beatport")
+  user = os.getenv("PGUSER", "postgres")
+  pw = os.getenv("PGPASSWORD", "")
+  conn = psycopg2.connect(host=host, port=port, dbname=db, user=user, password=pw)
+  return conn
+
+
+def create_table_if_not_exists(conn):
+  sql = """
+  CREATE TABLE IF NOT EXISTS beatport_top100 (
+    artist VARCHAR(255),
+    title VARCHAR(255),
+    rank INTEGER,
+    date DATE,
+    genre VARCHAR(255)
+  );
+  """
+  with conn.cursor() as cur:
+    cur.execute(sql)
+  conn.commit()
+
+
+def _truncate(val: Optional[str], length: int = 255) -> Optional[str]:
+  if val is None:
+    return None
+  s = val.strip()
+  if len(s) <= length:
+    return s
+  return s[:length]
+
+
+def write_db(rows: List[Dict[str, str]]) -> None:
+  if not rows:
+    print("No rows to write to DB.")
+    return
+
+  # Prepare tuples for insert
+  today = date.today()
+  records = []
+  for r in rows:
+    artist = _truncate(r.get("artists", ""))  # store artists into artist column per schema
+    title = _truncate(r.get("title", ""))
+    rank = int(r.get("rank") or 0)
+    genre = _truncate(r.get("genre", ""))
+    records.append((artist, title, rank, today, genre))
+
+  conn = _pg_conn()
+  try:
+    create_table_if_not_exists(conn)
+    with conn.cursor() as cur:
+      execute_batch(
+        cur,
+        "INSERT INTO beatport_top100 (artist, title, rank, date, genre) VALUES (%s, %s, %s, %s, %s)",
+        records,
+        page_size=100,
+      )
+    conn.commit()
+    print(f"Wrote {len(records)} rows to beatport_top100 on {os.getenv('PGHOST','192.168.1.152')}")
+  except Exception as e:
+    conn.rollback()
+    print(f"Error writing to DB: {e}")
+  finally:
+    conn.close()
+
 
 
 def main():
   rows = scrape_all(GENRE_URLS)
-  write_csv(rows, OUT_CSV)
+  # write to PostgreSQL
+  write_db(rows)
 
 
 if __name__ == "__main__":
