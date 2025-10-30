@@ -113,56 +113,72 @@ export default function App() {
 
 
   return (
-    <div className="App">
-      <h1>Beatport Top 100</h1>
+    <div className="container mt-4">
+      <div className="row">
+        <div className="col">
+          <h1 className="mb-4 text-center">Beatport Top 100</h1>
 
-      <div style={{ marginBottom: 12 }}>
-        <label htmlFor="genre-select" style={{ marginRight: 8 }}>Genre:</label>
-        <select
-          id="genre-select"
-          value={String(selectedIndex)}
-          onChange={(e) => setSelectedIndex(Number(e.target.value))}
-        >
-          {GENRES.map((g, i) => (
-            <option key={g.url} value={String(i)}>
-              {g.name}
-            </option>
-          ))}
-        </select>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label htmlFor="genre-select" className="form-label">Genre:</label>
+              <select
+                id="genre-select"
+                className="form-select"
+                value={String(selectedIndex)}
+                onChange={(e) => setSelectedIndex(Number(e.target.value))}
+              >
+                {GENRES.map((g, i) => (
+                  <option key={g.url} value={String(i)}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-6 d-flex align-items-end">
+              <button
+                onClick={loadTracks}
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : 'Reload'}
+              </button>
+            </div>
+          </div>
 
-        <button onClick={loadTracks} style={{ marginLeft: 12 }} disabled={loading}>
-          Reload
-        </button>
-      </div>
+          {loading && <div className="alert alert-info">Loading tracks...</div>}
+          {error && <div className="alert alert-danger">{error}</div>}
 
-      {loading && <p>Loading CSV…</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+          {!loading && !error && tracks.length === 0 && (
+            <div className="alert alert-warning">No tracks for selected genre.</div>
+          )}
 
-      {!loading && !error && tracks.length === 0 && <p>No tracks for selected genre.</p>}
+          {!loading && tracks.length > 0 && (
+            <div className="table-responsive">
+              <table className="table table-striped table-hover">
+                <thead className="table-dark">
+                  <tr>
+                    <th>Rank</th>
+                    <th>Title</th>
+                    <th>Artist(s)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tracks.map((t, i) => (
+                    <tr key={`${t.genre}-${t.rank ?? i}-${t.title}`}>
+                      <td className="fw-bold">{t.rank ?? i + 1}</td>
+                      <td>{t.title}</td>
+                      <td className="text-muted">{t.artist ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-      {!loading && tracks.length > 0 && (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", padding: 6 }}>Rank</th>
-              <th style={{ textAlign: "left", padding: 6 }}>Title</th>
-              <th style={{ textAlign: "left", padding: 6 }}>Artist(s)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tracks.map((t, i) => (
-              <tr key={`${t.genre}-${t.rank ?? i}-${t.title}`} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: 6, width: 60 }}>{t.rank ?? i + 1}</td>
-                <td style={{ padding: 6 }}>{t.title}</td>
-                <td style={{ padding: 6, color: "#555" }}>{t.artist ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <div style={{ marginTop: 12, fontSize: 12, color: "#444" }}>
-        Data loaded from database for date: {loadedDate ?? "unknown"}
+          <div className="mt-3 text-muted small">
+            Data loaded from database for date: {loadedDate ?? "unknown"}
+          </div>
+        </div>
       </div>
     </div>
   );
