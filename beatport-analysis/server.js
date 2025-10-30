@@ -9,11 +9,11 @@ const app = express();
 app.use(cors());
 
 const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: process.env.PGPORT || 5432,
-  database: process.env.PGDATABASE || 'beatport',
-  user: process.env.PGUSER || 'amundjones',
-  password: process.env.PGPASSWORD || '',
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  database: process.env.PGDATABASE,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
 });
 
 app.get('/api/tracks', async (req, res) => {

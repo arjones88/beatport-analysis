@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.beatport.scraper</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/Frameworks/Python.framework/Versions/3.14/bin/python3</string>
+        <string>/Users/amundjones/Documents/code/React/beatport-analysis/beatport-analysis/src/beatport.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/amundjones/Documents/code/React/beatport-analysis/beatport-analysis</string>
+    <key>StandardOutPath</key>
+    <string>/Users/amundjones/Documents/code/React/beatport-analysis/beatport-analysis/scraper.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/amundjones/Documents/code/React/beatport-analysis/beatport-analysis/scraper.error.log</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>0</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
