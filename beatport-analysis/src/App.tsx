@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-type Track = { genre: string; title: string; artist?: string; rank?: number; date?: string };
+type Track = { genre: string; title: string; artist?: string; rank?: number; date?: string; trend?: number; firstAppeared?: string };
 type Genre = { name: string; url: string };
 
 const GENRES: Genre[] = [
@@ -57,6 +57,8 @@ export default function App() {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  const [sortColumn, setSortColumn] = useState<string>('rank');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadTracks();
@@ -67,6 +69,46 @@ export default function App() {
     document.body.setAttribute('data-bs-theme', isDarkMode ? 'dark' : 'light');
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedTracks = [...tracks].sort((a, b) => {
+    let aVal: any, bVal: any;
+    switch (sortColumn) {
+      case 'rank':
+        aVal = a.rank ?? Infinity;
+        bVal = b.rank ?? Infinity;
+        break;
+      case 'trend':
+        aVal = a.trend ?? 0;
+        bVal = b.trend ?? 0;
+        break;
+      case 'title':
+        aVal = a.title.toLowerCase();
+        bVal = b.title.toLowerCase();
+        break;
+      case 'artist':
+        aVal = (a.artist ?? '').toLowerCase();
+        bVal = (b.artist ?? '').toLowerCase();
+        break;
+      case 'firstAppeared':
+        aVal = a.firstAppeared ?? '';
+        bVal = b.firstAppeared ?? '';
+        break;
+      default:
+        return 0;
+    }
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   useEffect(() => {
     // filter displayed tracks per selected genre whenever allTracks or selectedIndex changes
@@ -83,6 +125,37 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTracks, selectedIndex]);
 
+
+  function formatDate(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-');
+    return `${month}/${day}/${year}`;
+  }
+
+  function computeTrends(tracks: Track[]): Track[] {
+    // Group tracks by genre+title+artist to ensure same exact track
+    const trackMap = new Map<string, Track[]>();
+    tracks.forEach(track => {
+      const key = `${track.genre}-${track.title.toLowerCase().trim()}-${(track.artist || '').toLowerCase().trim()}`;
+      if (!trackMap.has(key)) trackMap.set(key, []);
+      trackMap.get(key)!.push(track);
+    });
+
+    // For each group, sort by date desc, compute trend for latest vs previous date
+    const result: Track[] = [];
+    trackMap.forEach(group => {
+      group.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
+      const latest = group[0];
+      const previous = group[1];
+      if (previous && latest.rank !== undefined && previous.rank !== undefined && latest.date !== previous.date) {
+        latest.trend = previous.rank - latest.rank; // positive = rising
+      }
+      // Find first appearance date
+      const minDate = group.reduce((min, track) => track.date! < min ? track.date! : min, group[0].date!);
+      latest.firstAppeared = minDate;
+      result.push(...group);
+    });
+    return result;
+  }
 
   async function loadTracks() {
     setLoading(true);
@@ -105,8 +178,11 @@ export default function App() {
         title: r.title,
         artist: r.artist,
         rank: r.rank,
+        date: r.date,
       }));
-      setAllTracks(tracksData);
+      // Compute trends
+      const tracksWithTrends = computeTrends(tracksData);
+      setAllTracks(tracksWithTrends);
       // Find the latest date
       const dates = rows.map(r => r.date).filter(date => date !== undefined);
       const latestDate = dates.length > 0 ? dates.reduce((a, b) => a! > b! ? a : b) : null;
@@ -175,17 +251,43 @@ export default function App() {
               <table className="table table-striped table-hover">
                 <thead className="table-dark">
                   <tr>
-                    <th>Rank</th>
-                    <th>Title</th>
-                    <th>Artist(s)</th>
+                    <th onClick={() => handleSort('rank')} style={{ cursor: 'pointer', minWidth: '80px' }}>
+                      Rank {sortColumn === 'rank' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('trend')} style={{ cursor: 'pointer', minWidth: '80px' }}>
+                      Trend {sortColumn === 'trend' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('title')} style={{ cursor: 'pointer' }}>
+                      Title {sortColumn === 'title' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('artist')} style={{ cursor: 'pointer' }}>
+                      Artist(s) {sortColumn === 'artist' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('firstAppeared')} style={{ cursor: 'pointer' }}>
+                      First Appeared {sortColumn === 'firstAppeared' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tracks.map((t, i) => (
+                  {sortedTracks.map((t, i) => (
                     <tr key={`${t.genre}-${t.rank ?? i}-${t.title}`}>
                       <td className="fw-bold">{t.rank ?? i + 1}</td>
+                      <td>
+                        {t.trend !== undefined ? (
+                          t.trend > 0 ? (
+                            <span className="text-success">↑ +{t.trend}</span>
+                          ) : t.trend < 0 ? (
+                            <span className="text-danger">↓ {t.trend}</span>
+                          ) : (
+                            <span className="text-muted">→ 0</span>
+                          )
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
                       <td>{t.title}</td>
                       <td className="text-muted">{t.artist ?? "-"}</td>
+                      <td className="text-muted">{t.firstAppeared ? formatDate(t.firstAppeared) : "-"}</td>
                     </tr>
                   ))}
                 </tbody>

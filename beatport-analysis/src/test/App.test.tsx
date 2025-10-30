@@ -40,7 +40,7 @@ describe('App', () => {
       render(<App />)
 
       await waitFor(() => {
-        expect(screen.getByText('Loading CSV…')).toBeInTheDocument()
+        expect(screen.getByText('Loading tracks...')).toBeInTheDocument()
       })
     })
 
@@ -49,7 +49,7 @@ describe('App', () => {
 
       render(<App />)
 
-      const reloadButton = screen.getByRole('button', { name: /reload/i })
+      const reloadButton = screen.getByRole('button', { name: /Loading\.\.\./i })
       expect(reloadButton).toBeDisabled()
     })
   })
@@ -135,6 +135,36 @@ describe('App', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Data loaded from database for date: 2024-01-01')).toBeInTheDocument()
+      })
+    })
+
+    it('computes and displays trend for tracks with historical data', async () => {
+      const tracksWithHistory = [
+        {
+          artist: 'Artist 1',
+          title: 'Track 1',
+          rank: 1,
+          date: '2024-01-02',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 1',
+          title: 'Track 1',
+          rank: 3, // was rank 3 yesterday, now 1, so trend = 3 - 1 = 2 (rising)
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        }
+      ]
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(tracksWithHistory)
+      })
+
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('↑ +2')).toBeInTheDocument()
       })
     })
 
@@ -256,15 +286,17 @@ describe('App', () => {
 
       render(<App />)
 
-      const reloadButton = screen.getByRole('button', { name: /reload/i })
-
-      // Wait for initial load
+      // Wait for initial load to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1)
+        expect(screen.getByRole('button', { name: /reload/i })).toBeInTheDocument()
       })
 
+      const reloadButton = screen.getByRole('button', { name: /reload/i })
+
       // Click reload
-      fireEvent.click(reloadButton)
+      await act(async () => {
+        fireEvent.click(reloadButton)
+      })
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2)
@@ -282,11 +314,37 @@ describe('App', () => {
       const select = screen.getByLabelText(/genre/i)
       expect(select).toHaveValue('0')
 
-      await act(async () => {
-        fireEvent.change(select, { target: { value: '5' } })
-      })
+      fireEvent.change(select, { target: { value: '5' } })
 
       expect(select).toHaveValue('5')
+    })
+
+    it('toggles dark mode when button is clicked', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([])
+      })
+
+      render(<App />)
+
+      const darkModeButton = screen.getByRole('button', { name: /toggle dark mode/i })
+
+      expect(darkModeButton).toHaveTextContent('🌙 Dark')
+      expect(document.body).toHaveAttribute('data-bs-theme', 'light')
+
+      await act(async () => {
+        fireEvent.click(darkModeButton)
+      })
+
+      expect(darkModeButton).toHaveTextContent('☀️ Light')
+      expect(document.body).toHaveAttribute('data-bs-theme', 'dark')
+
+      await act(async () => {
+        fireEvent.click(darkModeButton)
+      })
+
+      expect(darkModeButton).toHaveTextContent('🌙 Dark')
+      expect(document.body).toHaveAttribute('data-bs-theme', 'light')
     })
   })
 })
