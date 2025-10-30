@@ -110,6 +110,12 @@ export default function App() {
     return 0;
   });
 
+  const artistCount: Record<string, number> = {};
+  sortedTracks.forEach(track => {
+    const artist = track.artist || '';
+    artistCount[artist] = (artistCount[artist] || 0) + 1;
+  });
+
   useEffect(() => {
     // filter displayed tracks per selected genre whenever allTracks or selectedIndex changes
     if (!allTracks.length) {
@@ -286,7 +292,7 @@ export default function App() {
                         )}
                       </td>
                       <td>{t.title}</td>
-                      <td className="text-muted">{t.artist ?? "-"}</td>
+                      <td className="text-muted">{t.artist ?? "-"} ({artistCount[t.artist || ''] || 0})</td>
                       <td className="text-muted">{t.firstAppeared ? formatDate(t.firstAppeared) : "-"}</td>
                     </tr>
                   ))}

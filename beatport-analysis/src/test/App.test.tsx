@@ -126,8 +126,8 @@ describe('App', () => {
         expect(screen.getByText('Track 2')).toBeInTheDocument()
       })
 
-      expect(screen.getByText('Artist 1')).toBeInTheDocument()
-      expect(screen.getByText('Artist 2')).toBeInTheDocument()
+      expect(screen.getByText('Artist 1 (1)')).toBeInTheDocument()
+      expect(screen.getByText('Artist 2 (1)')).toBeInTheDocument()
     })
 
     it('displays the latest date from loaded data', async () => {
@@ -153,6 +153,34 @@ describe('App', () => {
           rank: 3, // was rank 3 yesterday, now 1, so trend = 3 - 1 = 2 (rising)
           date: '2024-01-01',
           genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 2',
+          title: 'Track 2',
+          rank: 5,
+          date: '2024-01-02',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 2',
+          title: 'Track 2',
+          rank: 5, // same rank, trend = 0
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 3',
+          title: 'Track 3',
+          rank: 10,
+          date: '2024-01-02',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 3',
+          title: 'Track 3',
+          rank: 8, // was rank 8 yesterday, now 10, so trend = 8 - 10 = -2 (falling)
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
         }
       ]
 
@@ -165,6 +193,8 @@ describe('App', () => {
 
       await waitFor(() => {
         expect(screen.getByText('↑ +2')).toBeInTheDocument()
+        expect(screen.getByText('→ 0')).toBeInTheDocument()
+        expect(screen.getByText('↓ -2')).toBeInTheDocument()
       })
     })
 
@@ -273,6 +303,185 @@ describe('App', () => {
         expect(rows[1]).toHaveTextContent('Track 1')
         expect(rows[2]).toHaveTextContent('Track 2')
         expect(rows[3]).toHaveTextContent('Track 3')
+      })
+    })
+
+    it('sorts tracks by title when title header is clicked', async () => {
+      const tracksToSort = [
+        {
+          artist: 'Artist 1',
+          title: 'Z Track',
+          rank: 1,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 2',
+          title: 'A Track',
+          rank: 2,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        }
+      ]
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(tracksToSort)
+      })
+
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Z Track')).toBeInTheDocument()
+      })
+
+      // Click title header
+      const titleHeader = screen.getByText('Title')
+      await act(async () => {
+        fireEvent.click(titleHeader)
+      })
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row')
+        expect(rows[1]).toHaveTextContent('A Track')
+        expect(rows[2]).toHaveTextContent('Z Track')
+      })
+    })
+
+    it('sorts tracks by artist when artist header is clicked', async () => {
+      const tracksToSort = [
+        {
+          artist: 'Z Artist',
+          title: 'Track 1',
+          rank: 1,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'A Artist',
+          title: 'Track 2',
+          rank: 2,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        }
+      ]
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(tracksToSort)
+      })
+
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Z Artist (1)')).toBeInTheDocument()
+      })
+
+      // Click artist header
+      const artistHeader = screen.getByText('Artist(s)')
+      await act(async () => {
+        fireEvent.click(artistHeader)
+      })
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row')
+        expect(rows[1]).toHaveTextContent('A Artist (1)')
+        expect(rows[2]).toHaveTextContent('Z Artist (1)')
+      })
+    })
+
+    it('sorts tracks by first appeared when first appeared header is clicked', async () => {
+      const tracksToSort = [
+        {
+          artist: 'Artist 1',
+          title: 'Track 1',
+          rank: 1,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 2',
+          title: 'Track 2',
+          rank: 2,
+          date: '2024-01-02',
+          genre: '140-deep-dubstep-grime'
+        }
+      ]
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(tracksToSort)
+      })
+
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('01/01/2024')).toBeInTheDocument()
+      })
+
+      // Click first appeared header
+      const firstAppearedHeader = screen.getByText('First Appeared')
+      await act(async () => {
+        fireEvent.click(firstAppearedHeader)
+      })
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row')
+        expect(rows[1]).toHaveTextContent('01/01/2024')
+        expect(rows[2]).toHaveTextContent('01/02/2024')
+      })
+    })
+
+    it('toggles sort direction when clicking the same header', async () => {
+      const tracksToSort = [
+        {
+          artist: 'Artist 1',
+          title: 'Z Track',
+          rank: 1,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        },
+        {
+          artist: 'Artist 2',
+          title: 'A Track',
+          rank: 2,
+          date: '2024-01-01',
+          genre: '140-deep-dubstep-grime'
+        }
+      ]
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(tracksToSort)
+      })
+
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Z Track')).toBeInTheDocument()
+      })
+
+      // Click title header once (asc)
+      const titleHeader = screen.getByText('Title')
+      await act(async () => {
+        fireEvent.click(titleHeader)
+      })
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row')
+        expect(rows[1]).toHaveTextContent('A Track')
+        expect(rows[2]).toHaveTextContent('Z Track')
+      })
+
+      // Click again to toggle to desc
+      await act(async () => {
+        fireEvent.click(titleHeader)
+      })
+
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row')
+        expect(rows[1]).toHaveTextContent('Z Track')
+        expect(rows[2]).toHaveTextContent('A Track')
       })
     })
   })
