@@ -42,14 +42,7 @@ const GENRES: Genre[] = [
   { name: "UK Garage / Bassline", url: "https://www.beatport.com/genre/uk-garage-bassline/86/top-100" },
 ];
 
-function slugFromUrl(url: string) {
-  try {
-    const m = url.match(/\/genre\/([^/]+)/);
-    return m ? m[1] : "";
-  } catch {
-    return "";
-  }
-}
+import { slugFromUrl } from "./utils";
 
 
 

@@ -11,18 +11,24 @@ describe('App', () => {
     mockFetch.mockClear()
   })
 
-  it('renders the main heading', () => {
-    render(<App />)
+  it('renders the main heading', async () => {
+    await act(async () => {
+      render(<App />)
+    })
     expect(screen.getByRole('heading', { name: /beatport top 100/i })).toBeInTheDocument()
   })
 
-  it('renders the genre select', () => {
-    render(<App />)
+  it('renders the genre select', async () => {
+    await act(async () => {
+      render(<App />)
+    })
     expect(screen.getByLabelText(/genre/i)).toBeInTheDocument()
   })
 
-  it('renders the reload button', () => {
-    render(<App />)
+  it('renders the reload button', async () => {
+    await act(async () => {
+      render(<App />)
+    })
     expect(screen.getByRole('button', { name: /reload/i })).toBeInTheDocument()
   })
 

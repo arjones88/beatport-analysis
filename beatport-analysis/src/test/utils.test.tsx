@@ -1,20 +1,8 @@
 import { describe, it, expect } from 'vitest'
-
-// Import the utility function from App.tsx
-// Since it's not exported, we'll need to test it indirectly or extract it
-// For now, let's create a test that verifies the slug extraction logic
+import { slugFromUrl } from '../utils'
 
 describe('Utility Functions', () => {
   describe('slugFromUrl', () => {
-    // Since slugFromUrl is not exported, we'll test the logic by creating our own version
-    const slugFromUrl = (url: string) => {
-      try {
-        const m = url.match(/\/genre\/([^/]+)/);
-        return m ? m[1] : "";
-      } catch {
-        return "";
-      }
-    };
 
     it('extracts genre slug from Beatport URL', () => {
       const url = "https://www.beatport.com/genre/house/5/top-100";
@@ -44,6 +32,11 @@ describe('Utility Functions', () => {
     it('extracts slug from URL with additional path segments', () => {
       const url = "https://www.beatport.com/genre/tech-house/11/top-100/extra/path";
       expect(slugFromUrl(url)).toBe("tech-house");
+    });
+
+    it('returns empty string when match throws error', () => {
+      // Pass null to trigger TypeError in url.match()
+      expect(slugFromUrl(null as any)).toBe("");
     });
   });
 });
