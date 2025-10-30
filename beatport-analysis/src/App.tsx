@@ -53,11 +53,20 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedDate, setLoadedDate] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   useEffect(() => {
     loadTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    document.body.setAttribute('data-bs-theme', isDarkMode ? 'dark' : 'light');
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
 
   useEffect(() => {
     // filter displayed tracks per selected genre whenever allTracks or selectedIndex changes
@@ -116,7 +125,16 @@ export default function App() {
     <div className="container mt-4">
       <div className="row">
         <div className="col">
-          <h1 className="mb-4 text-center">Beatport Top 100</h1>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h1 className="mb-0">Beatport Top 100</h1>
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="btn btn-outline-secondary"
+              aria-label="Toggle dark mode"
+            >
+              {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
+          </div>
 
           <div className="row mb-3">
             <div className="col-md-6">
