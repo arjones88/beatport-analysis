@@ -10,9 +10,11 @@ type TrackData = {
 
 type TrackHistoryChartProps = {
   trackHistory: TrackData[];
+  width?: number;
+  height?: number;
 };
 
-export default function TrackHistoryChart({ trackHistory }: TrackHistoryChartProps) {
+export default function TrackHistoryChart({ trackHistory, width, height }: TrackHistoryChartProps) {
   // Prepare data for the chart - sort by date ascending for proper timeline
   const chartData = trackHistory
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -47,10 +49,13 @@ export default function TrackHistoryChart({ trackHistory }: TrackHistoryChartPro
     return <div className="text-center text-muted py-4">No chart history available</div>;
   }
 
+  const chartWidth = width || '100%';
+  const chartHeight = height || '100%';
+
   return (
     <div className="chart-container" style={{ width: '100%', height: '400px', padding: '10px', boxSizing: 'border-box' }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
+      {width && height ? (
+        <LineChart width={width} height={height} data={chartData} margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -73,7 +78,33 @@ export default function TrackHistoryChart({ trackHistory }: TrackHistoryChartPro
             activeDot={{ r: 6, stroke: '#2563eb', strokeWidth: 2, fill: '#fff' }}
           />
         </LineChart>
-      </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width={chartWidth} height={chartHeight}>
+          <LineChart data={chartData} margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 12 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              domain={[100, 1]}
+              tick={{ fontSize: 12 }}
+              label={{ value: 'Rank', angle: -90, position: 'insideLeft' }}
+              reversed={true}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Line
+              type="monotone"
+              dataKey="rank"
+              stroke="#2563eb"
+              strokeWidth={2}
+              dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: '#2563eb', strokeWidth: 2, fill: '#fff' }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

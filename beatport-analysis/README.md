@@ -28,7 +28,7 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 - **Daily Scraping**: Python scraper collects fresh data from Beatport
 - **PostgreSQL Storage**: Efficient database design with proper indexing
 - **RESTful API**: Clean Express.js API serving processed data
-- **macOS Automation**: Launch daemon for automated daily updates
+- **Automated Scheduling**: Node.js cron jobs handle daily updates (no daemon required)
 
 ## 🏗️ Architecture
 
@@ -41,6 +41,9 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 ┌─────────────────┐    ┌─────────────────┐             │
 │   React App     │◀───│  Express API    │◀────────────┘
 │   (Frontend)    │    │  (server.js)    │
+│                 │    │  ├─ Cron Jobs   │
+│                 │    │  ├─ Manual Scrape│
+│                 │    │  └─ Scrape Status│
 └─────────────────┘    └─────────────────┘
 ```
 
@@ -84,17 +87,19 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
    python src/beatport.py
    ```
 
-6. **Start the development servers**
-   ```bash
-   # Terminal 1: Start API server
-   node server.js
+ 6. **Start the development servers**
+    ```bash
+    # Terminal 1: Start API server (includes automated daily scraping)
+    node server.js
 
-   # Terminal 2: Start frontend dev server
-   npm run dev
-   ```
+    # Terminal 2: Start frontend dev server
+    npm run dev
+    ```
 
-7. **Open your browser**
-   Navigate to `http://localhost:5173`
+ 7. **Open your browser**
+    Navigate to `http://localhost:5173`
+
+    *Note: The API server automatically runs the scraper daily at midnight. You can also trigger manual scrapes via the API.*
 
 ## 📊 Usage
 
@@ -106,6 +111,8 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 - **Sorting**: Click column headers to sort data
 - **Theme Toggle**: Switch between light and dark modes
 - **Reload**: Manually refresh data from the database
+- **Manual Scraping**: Trigger fresh data collection via API
+- **Scrape Status**: Check when data was last updated
 - **Trend Analysis**: Uses historical data to show rank changes over time
 - **Duplicate Filtering**: Removes duplicate songs, keeping only the highest ranked version
 
@@ -161,7 +168,8 @@ beatport-analysis/
 │   ├── utils.ts          # Utility functions
 │   ├── beatport.py       # Data scraper
 │   └── test/             # Test files
-├── server.js             # Express API server
+├── server.js             # Express API server with cron scheduling
+├── com.beatport.scraper.plist # Legacy macOS daemon (no longer needed)
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
@@ -221,6 +229,47 @@ Retrieve all track data from the database.
 }
 ```
 
+### POST /api/scrape
+Trigger a manual scraping operation.
+
+**Parameters**: None
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Scraping completed",
+  "timestamp": "2025-01-30T12:00:00.000Z"
+}
+```
+
+**Error Response**:
+```json
+{
+  "error": "Scraping failed: [error message]"
+}
+```
+
+### GET /api/scrape-status
+Get information about the last scraping operation and data freshness.
+
+**Parameters**: None
+
+**Response**:
+```json
+{
+  "lastScrape": "2025-01-30T00:00:00.000Z",
+  "totalRecords": 3500,
+  "daysSince": 0,
+  "status": "current"
+}
+```
+
+**Status values**:
+- `"current"`: Data was scraped today
+- `"yesterday"`: Data was scraped yesterday
+- `"outdated"`: Data is more than 1 day old
+
 ### GET /api/tracks/:genre/:title/:artist
 Retrieve historical chart data for a specific track.
 
@@ -273,14 +322,13 @@ curl "http://localhost:3001/api/tracks/house/amazing-track/artist-name"
 | `PGPASSWORD` | (empty) | Database password |
 | `PORT` | 3001 | API server port |
 
-### Automated Scraping (macOS)
-```bash
-# Install launch daemon
-sudo cp com.beatport.scraper.plist /Library/LaunchDaemons/
-sudo launchctl load /Library/LaunchDaemons/com.beatport.scraper.plist
-```
+### Automated Scraping
+The Node.js server automatically schedules daily scraping at midnight (00:00) using cron jobs. No additional setup is required - the scraper runs automatically when the server starts.
 
-This runs the scraper daily at 6:00 AM.
+For manual scraping, use the `/api/scrape` endpoint or run the scraper directly:
+```bash
+python3 src/beatport.py
+```
 
 ## 🧪 Testing
 

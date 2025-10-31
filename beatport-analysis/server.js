@@ -2,8 +2,15 @@ import express from 'express';
 import { Pool } from 'pg';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
+import { exec } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -63,6 +70,72 @@ app.get('/api/tracks/:genre/:title/:artist', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Manual scrape trigger endpoint
+app.post('/api/scrape', (req, res) => {
+  console.log('Manual scrape triggered...');
+
+  const pythonScript = path.join(__dirname, 'src', 'beatport.py');
+
+  exec(`python3 ${pythonScript}`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Scraper error: ${error.message}`);
+      return res.status(500).json({ error: error.message });
+    }
+
+    console.log(`Scraper completed successfully`);
+    res.json({
+      success: true,
+      message: 'Scraping completed',
+      timestamp: new Date().toISOString()
+    });
+  });
+});
+
+// Scrape status endpoint
+app.get('/api/scrape-status', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT MAX(date) as last_scrape, COUNT(*) as total_records
+      FROM beatport_top100
+    `);
+
+    const lastScrape = result.rows[0]?.last_scrape;
+    const totalRecords = result.rows[0]?.total_records || 0;
+    const daysSince = lastScrape ?
+      Math.floor((new Date() - new Date(lastScrape)) / (1000 * 60 * 60 * 24)) :
+      null;
+
+    res.json({
+      lastScrape,
+      totalRecords,
+      daysSince,
+      status: daysSince === 0 ? 'current' : daysSince === 1 ? 'yesterday' : 'outdated'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Schedule daily scraping at midnight
+cron.schedule('0 0 * * *', () => {
+  console.log('Running scheduled daily Beatport scraper...');
+
+  const pythonScript = path.join(__dirname, 'src', 'beatport.py');
+
+  exec(`python3 ${pythonScript}`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Scheduled scraper error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Scheduled scraper stderr: ${stderr}`);
+    }
+    console.log(`Scheduled scraper completed successfully at ${new Date().toISOString()}`);
+  });
+});
+
+console.log('Daily scraper scheduled to run at midnight (0 0 * * *)');
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
