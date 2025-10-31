@@ -1,75 +1,277 @@
-# React + TypeScript + Vite
+# 🎵 Beatport Chart Analyzer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack web application that scrapes, analyzes, and visualizes Beatport's Top 100 electronic music charts across 35+ genres with interactive trend analysis.
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-19.1.1-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)
+![Vite](https://img.shields.io/badge/Vite-7.1.7-yellow.svg)
+![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.8+-yellow.svg)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+### 🎶 Interactive Chart Analysis
+- **35+ Electronic Music Genres**: From House and Techno to Drum & Bass and Dubstep
+- **Real-time Trend Analysis**: Visual indicators showing rank changes (↑ rising, ↓ falling, → stable)
+- **Interactive Sorting**: Sort by rank, trend, title, artist, or first appearance date
+- **First Appearance Tracking**: See when tracks first entered the charts
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### 🎨 Modern UI/UX
+- **Dark/Light Mode Toggle**: Persistent theme preference with localStorage
+- **Responsive Design**: Mobile-friendly with Bootstrap 5
+- **Loading States**: Smooth UX with loading indicators and error handling
+- **Accessible**: Proper ARIA labels and keyboard navigation
 
-Note: This will impact Vite dev & build performances.
+### 🤖 Automated Data Pipeline
+- **Daily Scraping**: Python scraper collects fresh data from Beatport
+- **PostgreSQL Storage**: Efficient database design with proper indexing
+- **RESTful API**: Clean Express.js API serving processed data
+- **macOS Automation**: Launch daemon for automated daily updates
 
-## Expanding the ESLint configuration
+## 🏗️ Architecture
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Beatport.com  │───▶│  Python Scraper │───▶│  PostgreSQL DB  │
+│   (Source)      │    │  (beatport.py)  │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                       │
+┌─────────────────┐    ┌─────────────────┐             │
+│   React App     │◀───│  Express API    │◀────────────┘
+│   (Frontend)    │    │  (server.js)    │
+└─────────────────┘    └─────────────────┘
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🚀 Quick Start
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
+- **Node.js** 18+ and **npm**
+- **Python** 3.8+ with pip
+- **PostgreSQL** 13+
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd beatport-analysis
+   ```
+
+2. **Install frontend dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up PostgreSQL database**
+   ```sql
+   createdb beatport
+   ```
+
+4. **Configure environment variables**
+   Create a `.env` file:
+   ```env
+   PGHOST=localhost
+   PGPORT=5432
+   PGDATABASE=beatport
+   PGUSER=postgres
+   PGPASSWORD=your_password
+   ```
+
+5. **Run initial data scrape** (optional)
+   ```bash
+   python src/beatport.py
+   ```
+
+6. **Start the development servers**
+   ```bash
+   # Terminal 1: Start API server
+   node server.js
+
+   # Terminal 2: Start frontend dev server
+   npm run dev
+   ```
+
+7. **Open your browser**
+   Navigate to `http://localhost:5173`
+
+## 📊 Usage
+
+### Frontend Interface
+- **Genre Selection**: Choose from 35+ electronic music genres
+- **Data Table**: View tracks with rank, trend, title, artist, and first appearance
+- **Sorting**: Click column headers to sort data
+- **Theme Toggle**: Switch between light and dark modes
+- **Reload**: Manually refresh data from the database
+
+### API Usage
+```bash
+# Get all track data
+curl http://localhost:3001/api/tracks
 ```
+
+Response format:
+```json
+[
+  {
+    "artist": "Artist Name",
+    "title": "Track Title",
+    "rank": 1,
+    "date": "2025-01-30T05:00:00.000Z",
+    "genre": "house"
+  }
+]
+```
+
+## 🛠️ Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start Vite dev server
+npm run build        # Build for production
+npm run preview      # Preview production build
+
+# Testing
+npm run test         # Run tests in watch mode
+npm run test:ui      # Run tests with UI
+npm run test:run     # Run tests once
+
+# Code Quality
+npm run lint         # Run ESLint
+```
+
+### Project Structure
+```
+beatport-analysis/
+├── src/
+│   ├── App.tsx           # Main React component
+│   ├── App.css           # Styles
+│   ├── main.tsx          # App entry point
+│   ├── utils.ts          # Utility functions
+│   ├── beatport.py       # Data scraper
+│   └── test/             # Test files
+├── server.js             # Express API server
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── Notes/                # Documentation
+```
+
+### Database Schema
+```sql
+CREATE TABLE beatport_top100 (
+  artist VARCHAR(255),
+  title VARCHAR(255),
+  rank INTEGER,
+  date DATE,
+  genre VARCHAR(255)
+);
+```
+
+## 🤝 Contributing
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+### Development Guidelines
+- Follow TypeScript strict mode
+- Write tests for new features
+- Run `npm run lint` before committing
+- Update documentation for API changes
+- Use conventional commit messages
+
+## 📋 API Reference
+
+### GET /api/tracks
+Retrieve all track data from the database.
+
+**Parameters**: None
+
+**Response**: Array of track objects
+```json
+[
+  {
+    "artist": "Artist Name",
+    "title": "Track Title",
+    "rank": 1,
+    "date": "2025-01-30T05:00:00.000Z",
+    "genre": "house"
+  }
+]
+```
+
+**Error Response**:
+```json
+{
+  "error": "Database connection failed"
+}
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PGHOST` | localhost | PostgreSQL host |
+| `PGPORT` | 5432 | PostgreSQL port |
+| `PGDATABASE` | beatport | Database name |
+| `PGUSER` | postgres | Database user |
+| `PGPASSWORD` | (empty) | Database password |
+| `PORT` | 3001 | API server port |
+
+### Automated Scraping (macOS)
+```bash
+# Install launch daemon
+sudo cp com.beatport.scraper.plist /Library/LaunchDaemons/
+sudo launchctl load /Library/LaunchDaemons/com.beatport.scraper.plist
+```
+
+This runs the scraper daily at 6:00 AM.
+
+## 🧪 Testing
+
+The project includes comprehensive tests:
+
+```bash
+# Run all tests
+npm run test:run
+
+# Run with UI
+npm run test:ui
+
+# Run specific test
+npm run test src/test/App.test.tsx
+```
+
+Test coverage includes:
+- Component rendering and interactions
+- API integration
+- Data processing and sorting
+- Error handling
+
+## 📚 Documentation
+
+Detailed documentation is available in the `Notes/` directory:
+
+- **[Frontend Documentation](Notes/Beatport%20Chart%20Analyzer/Frontend.md)**: React app features and architecture
+- **[Backend Documentation](Notes/Beatport%20Chart%20Analyzer/Backend.md)**: API, scraper, and database details
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Beatport** for providing the chart data
+- **Bootstrap** for the UI framework
+- **React Testing Library** for testing utilities
+- **BeautifulSoup** for web scraping
+
+---
+
+**Made with ❤️ for electronic music enthusiasts**
