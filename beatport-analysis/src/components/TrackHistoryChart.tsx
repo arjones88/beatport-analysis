@@ -30,7 +30,7 @@ export default function TrackHistoryChart({ trackHistory }: TrackHistoryChartPro
     return `${month}/${day}/${year}`;
   };
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { fullDate: string; rank: number } }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -48,9 +48,9 @@ export default function TrackHistoryChart({ trackHistory }: TrackHistoryChartPro
   }
 
   return (
-    <div className="w-full h-96">
+    <div className="chart-container" style={{ width: '100%', height: '400px', padding: '10px', boxSizing: 'border-box' }}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+        <LineChart data={chartData} margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -61,6 +61,7 @@ export default function TrackHistoryChart({ trackHistory }: TrackHistoryChartPro
             domain={[100, 1]}
             tick={{ fontSize: 12 }}
             label={{ value: 'Rank', angle: -90, position: 'insideLeft' }}
+            reversed={true}
           />
           <Tooltip content={<CustomTooltip />} />
           <Line
