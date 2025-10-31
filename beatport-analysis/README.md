@@ -99,10 +99,11 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 
 ### Frontend Interface
 - **Genre Selection**: Choose from 35+ electronic music genres
-- **Data Table**: View tracks with rank, trend, title, artist, and first appearance
+- **Data Table**: View current day's tracks with rank, trend, title, artist, and first appearance
 - **Sorting**: Click column headers to sort data
 - **Theme Toggle**: Switch between light and dark modes
 - **Reload**: Manually refresh data from the database
+- **Trend Analysis**: Uses historical data to show rank changes over time
 
 ### API Usage
 ```bash

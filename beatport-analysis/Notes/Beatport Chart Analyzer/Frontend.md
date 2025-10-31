@@ -44,6 +44,7 @@ The frontend is a React TypeScript application built with Vite that displays Bea
 - Error messages for API failures or empty data
 - Manual reload functionality
 - Displays latest data date from database
+- Shows only current day's chart data while using historical data for trend calculation
 
 ### 7. Responsive Design
 - Mobile-friendly table with horizontal scrolling

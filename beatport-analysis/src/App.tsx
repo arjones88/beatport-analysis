@@ -117,14 +117,20 @@ export default function App() {
   });
 
   useEffect(() => {
-    // filter displayed tracks per selected genre whenever allTracks or selectedIndex changes
+    // filter displayed tracks per selected genre and latest date whenever allTracks or selectedIndex changes
     if (!allTracks.length) {
       setTracks([]);
       return;
     }
     const slug = slugFromUrl(GENRES[selectedIndex].url);
+
+    // Find the latest date from all tracks
+    const latestDate = allTracks.reduce((latest, track) => {
+      return track.date! > latest ? track.date! : latest;
+    }, allTracks[0].date!);
+
     const filtered = allTracks
-      .filter(t => t.genre === slug)
+      .filter(t => t.genre === slug && t.date === latestDate)
       .slice() // copy
       .sort((a, b) => (Number(a.rank ?? Infinity) - Number(b.rank ?? Infinity)));
     setTracks(filtered);
