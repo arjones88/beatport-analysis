@@ -104,6 +104,7 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 - **Theme Toggle**: Switch between light and dark modes
 - **Reload**: Manually refresh data from the database
 - **Trend Analysis**: Uses historical data to show rank changes over time
+- **Duplicate Filtering**: Removes duplicate songs, keeping only the highest ranked version
 
 ### API Usage
 ```bash

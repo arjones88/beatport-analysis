@@ -31,6 +31,7 @@ The Beatport Chart Analyzer is a full-stack web application that scrapes, stores
 - **Trend Analysis**: Track rank changes over time with visual indicators
 - **Interactive Sorting**: Sort by rank, trend, title, artist, or first appearance date
 - **Real-time Data**: Daily updated charts from Beatport (displays latest day, uses history for trends)
+- **Duplicate Filtering**: Removes duplicate songs, keeping only the highest ranked version
 - **Responsive Design**: Mobile-friendly interface
 - **Dark Mode**: Theme toggle with localStorage persistence
 

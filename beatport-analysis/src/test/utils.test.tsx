@@ -36,7 +36,7 @@ describe('Utility Functions', () => {
 
     it('returns empty string when match throws error', () => {
       // Pass null to trigger TypeError in url.match()
-      expect(slugFromUrl(null as any)).toBe("");
+      expect(slugFromUrl(null as unknown as string)).toBe("");
     });
   });
 });

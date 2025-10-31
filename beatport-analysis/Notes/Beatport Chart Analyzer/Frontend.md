@@ -45,6 +45,7 @@ The frontend is a React TypeScript application built with Vite that displays Bea
 - Manual reload functionality
 - Displays latest data date from database
 - Shows only current day's chart data while using historical data for trend calculation
+- Filters out duplicate songs, keeping only the highest ranked version of each track
 
 ### 7. Responsive Design
 - Mobile-friendly table with horizontal scrolling

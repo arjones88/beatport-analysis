@@ -59,6 +59,7 @@ export default function App() {
   });
   const [sortColumn, setSortColumn] = useState<string>('rank');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     loadTracks();
@@ -79,8 +80,15 @@ export default function App() {
     }
   };
 
-  const sortedTracks = [...tracks].sort((a, b) => {
-    let aVal: any, bVal: any;
+  const filteredTracks = searchTerm
+    ? tracks.filter(track =>
+        track.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (track.artist ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : tracks;
+
+  const sortedTracks = [...filteredTracks].sort((a, b) => {
+    let aVal: number | string, bVal: number | string;
     switch (sortColumn) {
       case 'rank':
         aVal = a.rank ?? Infinity;
@@ -111,7 +119,7 @@ export default function App() {
   });
 
   const artistCount: Record<string, number> = {};
-  sortedTracks.forEach(track => {
+  filteredTracks.forEach(track => {
     const artist = track.artist || '';
     artistCount[artist] = (artistCount[artist] || 0) + 1;
   });
@@ -129,11 +137,23 @@ export default function App() {
       return track.date! > latest ? track.date! : latest;
     }, allTracks[0].date!);
 
-    const filtered = allTracks
-      .filter(t => t.genre === slug && t.date === latestDate)
-      .slice() // copy
-      .sort((a, b) => (Number(a.rank ?? Infinity) - Number(b.rank ?? Infinity)));
-    setTracks(filtered);
+    // Filter by genre and latest date, then remove duplicates keeping only the highest ranked (lowest rank number)
+    const genreTracks = allTracks.filter(t => t.genre === slug && t.date === latestDate);
+
+    // Remove duplicates by title+artist, keeping the one with the best rank (lowest number)
+    const seen = new Set<string>();
+    const deduplicated = genreTracks
+      .sort((a, b) => (Number(a.rank ?? Infinity) - Number(b.rank ?? Infinity))) // Sort by rank first
+      .filter(track => {
+        const key = `${track.title.toLowerCase().trim()}-${(track.artist || '').toLowerCase().trim()}`;
+        if (seen.has(key)) {
+          return false; // Skip duplicate
+        }
+        seen.add(key);
+        return true; // Keep first occurrence (best rank)
+      });
+
+    setTracks(deduplicated);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allTracks, selectedIndex]);
 
@@ -155,18 +175,35 @@ export default function App() {
       trackMap.get(key)!.push(track);
     });
 
-    // For each group, sort by date desc, compute trend for latest vs previous date
+    // For each group, compute trend by comparing best ranks between consecutive dates
     const result: Track[] = [];
     trackMap.forEach(group => {
-      group.sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
-      const latest = group[0];
-      const previous = group[1];
-      if (previous && latest.rank !== undefined && previous.rank !== undefined && latest.date !== previous.date) {
-        latest.trend = previous.rank - latest.rank; // positive = rising
+      // Group by date and find best rank for each date
+      const dateMap = new Map<string, Track>();
+      group.forEach(track => {
+        const existing = dateMap.get(track.date!);
+        if (!existing || (track.rank ?? Infinity) < (existing.rank ?? Infinity)) {
+          dateMap.set(track.date!, track);
+        }
+      });
+
+      // Sort dates descending
+      const sortedDates = Array.from(dateMap.keys()).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+      // Calculate trends between consecutive dates
+      for (let i = 0; i < sortedDates.length; i++) {
+        const currentTrack = dateMap.get(sortedDates[i])!;
+        if (i < sortedDates.length - 1) {
+          const nextTrack = dateMap.get(sortedDates[i + 1])!;
+          if (currentTrack.rank !== undefined && nextTrack.rank !== undefined) {
+            currentTrack.trend = nextTrack.rank - currentTrack.rank; // positive = rising
+          }
+        }
+        // Find first appearance date
+        const minDate = sortedDates[sortedDates.length - 1];
+        currentTrack.firstAppeared = minDate;
       }
-      // Find first appearance date
-      const minDate = group.reduce((min, track) => track.date! < min ? track.date! : min, group[0].date!);
-      latest.firstAppeared = minDate;
+
       result.push(...group);
     });
     return result;
@@ -227,39 +264,66 @@ export default function App() {
             </button>
           </div>
 
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label htmlFor="genre-select" className="form-label">Genre:</label>
-              <select
-                id="genre-select"
-                className="form-select"
-                value={String(selectedIndex)}
-                onChange={(e) => setSelectedIndex(Number(e.target.value))}
-              >
-                {GENRES.map((g, i) => (
-                  <option key={g.url} value={String(i)}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-6 d-flex align-items-end">
-              <button
-                onClick={loadTracks}
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Reload'}
-              </button>
-            </div>
-          </div>
+           <div className="row mb-3">
+             <div className="col-md-6">
+               <label htmlFor="genre-select" className="form-label">Genre:</label>
+               <select
+                 id="genre-select"
+                 className="form-select"
+                 value={String(selectedIndex)}
+                 onChange={(e) => setSelectedIndex(Number(e.target.value))}
+               >
+                 {GENRES.map((g, i) => (
+                   <option key={g.url} value={String(i)}>
+                     {g.name}
+                   </option>
+                 ))}
+               </select>
+             </div>
+             <div className="col-md-6 d-flex align-items-end">
+               <button
+                 onClick={loadTracks}
+                 className="btn btn-primary"
+                 disabled={loading}
+               >
+                 {loading ? 'Loading...' : 'Reload'}
+               </button>
+             </div>
+           </div>
+
+           <div className="row mb-3">
+             <div className="col-md-8">
+               <label htmlFor="search-input" className="form-label">Search tracks:</label>
+               <input
+                 id="search-input"
+                 type="text"
+                 className="form-control"
+                 placeholder="Search by title or artist..."
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+               />
+             </div>
+             <div className="col-md-4 d-flex align-items-end">
+               <button
+                 onClick={() => setSearchTerm('')}
+                 className="btn btn-outline-secondary"
+                 disabled={!searchTerm}
+               >
+                 Clear Search
+               </button>
+             </div>
+           </div>
 
           {loading && <div className="alert alert-info">Loading tracks...</div>}
           {error && <div className="alert alert-danger">{error}</div>}
 
-          {!loading && !error && tracks.length === 0 && (
-            <div className="alert alert-warning">No tracks for selected genre.</div>
-          )}
+           {!loading && !error && tracks.length === 0 && (
+             <div className="alert alert-warning">No tracks for selected genre.</div>
+           )}
+
+           {!loading && !error && tracks.length > 0 && filteredTracks.length === 0 && searchTerm && (
+             <div className="alert alert-info">No tracks match your search "{searchTerm}".</div>
+           )}
 
           {!loading && tracks.length > 0 && (
             <div className="table-responsive">

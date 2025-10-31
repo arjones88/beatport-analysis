@@ -449,6 +449,149 @@ describe('App', () => {
     })
   })
 
+  describe('Search Functionality', () => {
+    const mockTracks = [
+      {
+        artist: 'Artist One',
+        title: 'Amazing Track',
+        rank: 1,
+        date: '2024-01-01',
+        genre: '140-deep-dubstep-grime'
+      },
+      {
+        artist: 'Artist Two',
+        title: 'Cool Song',
+        rank: 2,
+        date: '2024-01-01',
+        genre: '140-deep-dubstep-grime'
+      },
+      {
+        artist: 'Artist Three',
+        title: 'Another Track',
+        rank: 3,
+        date: '2024-01-01',
+        genre: '140-deep-dubstep-grime'
+      }
+    ]
+
+    beforeEach(() => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockTracks)
+      })
+    })
+
+    it('renders search input field', async () => {
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/search tracks/i)).toBeInTheDocument()
+      })
+    })
+
+    it('filters tracks by title when searching', async () => {
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+      })
+
+      const searchInput = screen.getByPlaceholderText(/search by title or artist/i)
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Amazing' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+        expect(screen.queryByText('Cool Song')).not.toBeInTheDocument()
+        expect(screen.queryByText('Another Track')).not.toBeInTheDocument()
+      })
+    })
+
+    it('filters tracks by artist when searching', async () => {
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Artist One (1)')).toBeInTheDocument()
+      })
+
+      const searchInput = screen.getByPlaceholderText(/search by title or artist/i)
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Artist Two' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Cool Song')).toBeInTheDocument()
+        expect(screen.queryByText('Amazing Track')).not.toBeInTheDocument()
+        expect(screen.queryByText('Another Track')).not.toBeInTheDocument()
+      })
+    })
+
+    it('shows no results message when search has no matches', async () => {
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+      })
+
+      const searchInput = screen.getByPlaceholderText(/search by title or artist/i)
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'NonExistent' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('No tracks match your search "NonExistent".')).toBeInTheDocument()
+      })
+    })
+
+    it('clears search when clear button is clicked', async () => {
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+      })
+
+      const searchInput = screen.getByPlaceholderText(/search by title or artist/i)
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Amazing' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+        expect(screen.queryByText('Cool Song')).not.toBeInTheDocument()
+      })
+
+      const clearButton = screen.getByRole('button', { name: /clear search/i })
+      await act(async () => {
+        fireEvent.click(clearButton)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+        expect(screen.getByText('Cool Song')).toBeInTheDocument()
+        expect(screen.getByText('Another Track')).toBeInTheDocument()
+      })
+    })
+
+    it('search is case insensitive', async () => {
+      render(<App />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+      })
+
+      const searchInput = screen.getByPlaceholderText(/search by title or artist/i)
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'amazing' } })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Amazing Track')).toBeInTheDocument()
+        expect(screen.queryByText('Cool Song')).not.toBeInTheDocument()
+      })
+    })
+  })
+
   describe('User Interactions', () => {
     it('calls loadTracks when reload button is clicked', async () => {
       mockFetch.mockResolvedValue({
