@@ -16,6 +16,7 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 - **Real-time Trend Analysis**: Visual indicators showing rank changes (↑ rising, ↓ falling, → stable)
 - **Interactive Sorting**: Sort by rank, trend, title, artist, or first appearance date
 - **First Appearance Tracking**: See when tracks first entered the charts
+- **Clickable Track Details**: Click any track to view its complete chart history with interactive charts
 
 ### 🎨 Modern UI/UX
 - **Dark/Light Mode Toggle**: Persistent theme preference with localStorage
@@ -100,6 +101,8 @@ A full-stack web application that scrapes, analyzes, and visualizes Beatport's T
 ### Frontend Interface
 - **Genre Selection**: Choose from 35+ electronic music genres
 - **Data Table**: View current day's tracks with rank, trend, title, artist, and first appearance
+- **Track Details**: Click any track row to view detailed history and statistics
+- **Interactive Charts**: Visualize rank progression over time with Recharts
 - **Sorting**: Click column headers to sort data
 - **Theme Toggle**: Switch between light and dark modes
 - **Reload**: Manually refresh data from the database
@@ -148,7 +151,11 @@ npm run lint         # Run ESLint
 ```
 beatport-analysis/
 ├── src/
-│   ├── App.tsx           # Main React component
+│   ├── components/       # React components
+│   │   ├── MainChart.tsx     # Main chart view component
+│   │   ├── TrackDetail.tsx   # Individual track detail page
+│   │   └── TrackHistoryChart.tsx # Chart visualization component
+│   ├── App.tsx           # Main app with routing
 │   ├── App.css           # Styles
 │   ├── main.tsx          # App entry point
 │   ├── utils.ts          # Utility functions
@@ -211,6 +218,46 @@ Retrieve all track data from the database.
 ```json
 {
   "error": "Database connection failed"
+}
+```
+
+### GET /api/tracks/:genre/:title/:artist
+Retrieve historical chart data for a specific track.
+
+**Parameters**:
+- `genre`: URL-encoded genre slug (e.g., `house`, `techno-peak-time-driving`)
+- `title`: URL-encoded track title (e.g., `amazing-track`)
+- `artist`: URL-encoded artist name (e.g., `artist-name`)
+
+**Example Request**:
+```bash
+curl "http://localhost:3001/api/tracks/house/amazing-track/artist-name"
+```
+
+**Response**: Array of historical track data
+```json
+[
+  {
+    "artist": "Artist Name",
+    "title": "Amazing Track",
+    "rank": 5,
+    "date": "2024-01-01",
+    "genre": "house"
+  },
+  {
+    "artist": "Artist Name",
+    "title": "Amazing Track",
+    "rank": 3,
+    "date": "2024-01-02",
+    "genre": "house"
+  }
+]
+```
+
+**Error Response**:
+```json
+{
+  "error": "Track not found"
 }
 ```
 

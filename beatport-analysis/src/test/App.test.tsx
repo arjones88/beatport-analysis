@@ -1,4 +1,5 @@
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 import App from '../App'
 
@@ -13,21 +14,21 @@ describe('App', () => {
 
   it('renders the main heading', async () => {
     await act(async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
     })
     expect(screen.getByRole('heading', { name: /beatport top 100/i })).toBeInTheDocument()
   })
 
   it('renders the genre select', async () => {
     await act(async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
     })
     expect(screen.getByLabelText(/genre/i)).toBeInTheDocument()
   })
 
   it('renders the reload button', async () => {
     await act(async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
     })
     expect(screen.getByRole('button', { name: /reload/i })).toBeInTheDocument()
   })
@@ -37,7 +38,7 @@ describe('App', () => {
       // Mock fetch to never resolve (simulating loading)
       mockFetch.mockImplementation(() => new Promise(() => {}))
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Loading tracks...')).toBeInTheDocument()
@@ -47,7 +48,7 @@ describe('App', () => {
     it('disables reload button while loading', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {}))
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       const reloadButton = screen.getByRole('button', { name: /Loading\.\.\./i })
       expect(reloadButton).toBeDisabled()
@@ -58,7 +59,7 @@ describe('App', () => {
     it('displays error message when API fails', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'))
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Network error')).toBeInTheDocument()
@@ -72,7 +73,7 @@ describe('App', () => {
         statusText: 'Internal Server Error'
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('API error: 500 Internal Server Error')).toBeInTheDocument()
@@ -85,7 +86,7 @@ describe('App', () => {
         json: () => Promise.resolve([])
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('No tracks found in database')).toBeInTheDocument()
@@ -119,7 +120,7 @@ describe('App', () => {
     })
 
     it('displays tracks in table when data loads successfully', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Track 1')).toBeInTheDocument()
@@ -131,7 +132,7 @@ describe('App', () => {
     })
 
     it('displays the latest date from loaded data', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Data loaded from database for date: 2024-01-01')).toBeInTheDocument()
@@ -189,7 +190,7 @@ describe('App', () => {
         json: () => Promise.resolve(tracksWithHistory)
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('↑ +2')).toBeInTheDocument()
@@ -213,7 +214,7 @@ describe('App', () => {
         json: () => Promise.resolve(differentGenreTracks)
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('No tracks for selected genre.')).toBeInTheDocument()
@@ -247,7 +248,7 @@ describe('App', () => {
     })
 
     it('filters tracks by selected genre', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Dubstep Track')).toBeInTheDocument()
@@ -295,7 +296,7 @@ describe('App', () => {
         json: () => Promise.resolve(unsortedTracks)
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         const rows = screen.getAllByRole('row')
@@ -329,7 +330,7 @@ describe('App', () => {
         json: () => Promise.resolve(tracksToSort)
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Z Track')).toBeInTheDocument()
@@ -371,7 +372,7 @@ describe('App', () => {
         json: () => Promise.resolve(tracksToSort)
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Z Artist (1)')).toBeInTheDocument()
@@ -418,7 +419,7 @@ describe('App', () => {
         json: () => Promise.resolve(tracksToSort)
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Z Track')).toBeInTheDocument()
@@ -482,7 +483,7 @@ describe('App', () => {
     })
 
     it('renders search input field', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByLabelText(/search tracks/i)).toBeInTheDocument()
@@ -490,7 +491,7 @@ describe('App', () => {
     })
 
     it('filters tracks by title when searching', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Amazing Track')).toBeInTheDocument()
@@ -509,7 +510,7 @@ describe('App', () => {
     })
 
     it('filters tracks by artist when searching', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Artist One (1)')).toBeInTheDocument()
@@ -528,7 +529,7 @@ describe('App', () => {
     })
 
     it('shows no results message when search has no matches', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Amazing Track')).toBeInTheDocument()
@@ -545,7 +546,7 @@ describe('App', () => {
     })
 
     it('clears search when clear button is clicked', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Amazing Track')).toBeInTheDocument()
@@ -574,7 +575,7 @@ describe('App', () => {
     })
 
     it('search is case insensitive', async () => {
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       await waitFor(() => {
         expect(screen.getByText('Amazing Track')).toBeInTheDocument()
@@ -599,7 +600,7 @@ describe('App', () => {
         json: () => Promise.resolve([])
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       // Wait for initial load to complete
       await waitFor(() => {
@@ -624,7 +625,7 @@ describe('App', () => {
         json: () => Promise.resolve([])
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       const select = screen.getByLabelText(/genre/i)
       expect(select).toHaveValue('0')
@@ -640,7 +641,7 @@ describe('App', () => {
         json: () => Promise.resolve([])
       })
 
-      render(<App />)
+      render(<BrowserRouter><App /></BrowserRouter>)
 
       const darkModeButton = screen.getByRole('button', { name: /toggle dark mode/i })
 
