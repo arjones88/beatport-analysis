@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import "../App.css";
 
 type Track = { genre: string; title: string; artist?: string; rank?: number; date?: string; trend?: number; firstAppeared?: string };
@@ -47,7 +47,15 @@ import { slugFromUrl } from "../utils";
 
 export default function MainChart() {
   const navigate = useNavigate();
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [searchParams] = useSearchParams();
+  const [selectedIndex, setSelectedIndex] = useState<number>(() => {
+    const genreParam = searchParams.get('genre');
+    if (genreParam) {
+      const index = GENRES.findIndex(g => slugFromUrl(g.url) === genreParam);
+      return index >= 0 ? index : 0;
+    }
+    return 0;
+  });
   const [allTracks, setAllTracks] = useState<Track[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);

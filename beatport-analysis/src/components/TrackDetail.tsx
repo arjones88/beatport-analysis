@@ -97,7 +97,7 @@ export default function TrackDetail() {
         <div className="alert alert-danger">
           <h4 className="alert-heading">Error Loading Track</h4>
           <p>{error}</p>
-          <Link to="/" className="btn btn-primary">Back to Charts</Link>
+          <Link to={`/?genre=${genre}`} className="btn btn-primary">Back to Charts</Link>
         </div>
       </div>
     );
@@ -109,7 +109,7 @@ export default function TrackDetail() {
         <div className="alert alert-warning">
           <h4 className="alert-heading">Track Not Found</h4>
           <p>The requested track could not be found in our database.</p>
-          <Link to="/" className="btn btn-primary">Back to Charts</Link>
+          <Link to={`/?genre=${genre}`} className="btn btn-primary">Back to Charts</Link>
         </div>
       </div>
     );
@@ -128,7 +128,7 @@ export default function TrackDetail() {
             <Link to="/">Beatport Charts</Link>
           </li>
           <li className="breadcrumb-item">
-            <Link to="/">{getGenreDisplayName(track.genre)}</Link>
+            <Link to={`/?genre=${track.genre}`}>{getGenreDisplayName(track.genre)}</Link>
           </li>
           <li className="breadcrumb-item active" aria-current="page">
             {track.title}
@@ -203,11 +203,11 @@ export default function TrackDetail() {
             </div>
           </div>
 
-          <div className="mt-3">
-            <Link to="/" className="btn btn-secondary w-100">
-              ← Back to Charts
-            </Link>
-          </div>
+           <div className="mt-3">
+             <Link to={`/?genre=${track.genre}`} className="btn btn-secondary w-100">
+               ← Back to Charts
+             </Link>
+           </div>
         </div>
       </div>
     </div>
