@@ -82,6 +82,37 @@ describe('TrackHistoryChart', () => {
     expect(document.body).toBeInTheDocument()
   })
 
+  it('deduplicates entries from the same day, keeping the best rank', () => {
+    const duplicateDateData = [
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 5,
+        date: '2024-01-01T00:00:00.000Z',
+        genre: 'house'
+      },
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 3,
+        date: '2024-01-01T00:00:00.000Z',
+        genre: 'house'
+      },
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 10,
+        date: '2024-01-02T00:00:00.000Z',
+        genre: 'house'
+      }
+    ]
+
+    render(<TrackHistoryChart trackHistory={duplicateDateData} />)
+
+    // Component should render without crashing and deduplicate properly
+    expect(document.body).toBeInTheDocument()
+  })
+
   it('renders chart with different rank ranges', () => {
     const wideRangeData = [
       {

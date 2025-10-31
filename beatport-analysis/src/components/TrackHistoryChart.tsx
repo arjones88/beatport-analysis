@@ -15,14 +15,20 @@ type TrackHistoryChartProps = {
 };
 
 export default function TrackHistoryChart({ trackHistory, width, height }: TrackHistoryChartProps) {
-  // Prepare data for the chart - sort by date ascending for proper timeline
-  const chartData = trackHistory
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(track => ({
-      date: new Date(track.date).toLocaleDateString(),
-      rank: track.rank,
-      fullDate: track.date
-    }));
+  // Prepare data for the chart - deduplicate by date (keep best rank per day) and sort by date ascending
+  const chartData = Object.values(
+    trackHistory.reduce((acc, track) => {
+      const dateKey = new Date(track.date).toLocaleDateString();
+      if (!acc[dateKey] || track.rank < acc[dateKey].rank) {
+        acc[dateKey] = {
+          date: dateKey,
+          rank: track.rank,
+          fullDate: track.date
+        };
+      }
+      return acc;
+    }, {} as Record<string, { date: string; rank: number; fullDate: string }>)
+  ).sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
 
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
