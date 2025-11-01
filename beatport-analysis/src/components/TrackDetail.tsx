@@ -48,6 +48,11 @@ export default function TrackDetail() {
     return `${month}/${day}/${year}`;
   };
 
+  const getUniqueDaysCount = (): number => {
+    const uniqueDays = new Set(trackHistory.map(track => track.date));
+    return uniqueDays.size;
+  };
+
   const getCurrentRank = (): number | null => {
     if (trackHistory.length === 0) return null;
     // Get the most recent entry
@@ -172,9 +177,9 @@ export default function TrackDetail() {
               <div className="row">
                 <div className="col-12">
                   <h5>Chart History</h5>
-                  <p className="text-muted small">
-                    Track has appeared in {trackHistory.length} chart{trackHistory.length !== 1 ? 's' : ''}
-                  </p>
+                   <p className="text-muted small">
+                     Track has appeared in {getUniqueDaysCount()} chart{getUniqueDaysCount() !== 1 ? 's' : ''}
+                   </p>
                   <TrackHistoryChart trackHistory={trackHistory} />
                 </div>
               </div>
@@ -188,9 +193,9 @@ export default function TrackDetail() {
               <h5 className="card-title mb-0">Statistics</h5>
             </div>
             <div className="card-body">
-              <div className="mb-3">
-                <strong>Total Appearances:</strong> {trackHistory.length}
-              </div>
+               <div className="mb-3">
+                 <strong>Total Appearances:</strong> {getUniqueDaysCount()}
+               </div>
               <div className="mb-3">
                 <strong>Best Rank:</strong> #{peakRank}
               </div>
