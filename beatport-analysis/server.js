@@ -25,7 +25,7 @@ const pool = new Pool({
 
 app.get('/api/tracks', async (req, res) => {
   try {
-    const result = await pool.query('SELECT artist, title, rank, date, genre FROM beatport_top100 ORDER BY date DESC, genre, rank');
+    const result = await pool.query('SELECT artist, title, rank, date, scraped_at, genre FROM beatport_top100 ORDER BY date DESC, scraped_at DESC, genre, rank');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -45,10 +45,10 @@ app.get('/api/tracks/:genre/:title/:artist', async (req, res) => {
     // Query to find tracks that match the normalized slugs
     // First, let's get all tracks for the genre and then filter in JavaScript
     const query = `
-      SELECT artist, title, rank, date, genre
+      SELECT artist, title, rank, date, scraped_at, genre
       FROM beatport_top100
       WHERE LOWER(genre) = $1
-      ORDER BY date DESC
+      ORDER BY date DESC, scraped_at DESC
     `;
 
     const dbResult = await pool.query(query, [normalizedGenre]);
@@ -117,8 +117,8 @@ app.get('/api/scrape-status', async (req, res) => {
   }
 });
 
-// Schedule daily scraping at midnight
-cron.schedule('0 0 * * *', () => {
+// Schedule daily scraping at noon
+cron.schedule('0 12 * * *', () => {
   console.log('Running scheduled daily Beatport scraper...');
 
   const pythonScript = path.join(__dirname, 'src', 'beatport.py');
@@ -135,7 +135,7 @@ cron.schedule('0 0 * * *', () => {
   });
 });
 
-console.log('Daily scraper scheduled to run at midnight (0 0 * * *)');
+console.log('Daily scraper scheduled to run at noon (0 12 * * *)');
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

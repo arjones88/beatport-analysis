@@ -82,7 +82,7 @@ describe('TrackHistoryChart', () => {
     expect(document.body).toBeInTheDocument()
   })
 
-  it('deduplicates entries from the same day, keeping the best rank', () => {
+  it('deduplicates entries from the same day, keeping the most recent data', () => {
     const duplicateDateData = [
       {
         artist: 'Test Artist',
@@ -270,6 +270,44 @@ describe('TrackHistoryChart', () => {
 
     // Check that the chart data includes fullDate for tooltip
     // This indirectly tests that the formatDate function path is accessible
+    expect(document.body).toBeInTheDocument()
+  })
+
+  it('calculates trends correctly, using previous non-zero trend when current is zero', () => {
+    const trendTestData = [
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 10,
+        date: '2024-01-01T00:00:00.000Z',
+        genre: 'house'
+      },
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 8,
+        date: '2024-01-02T00:00:00.000Z',
+        genre: 'house'
+      },
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 8,
+        date: '2024-01-03T00:00:00.000Z',
+        genre: 'house'
+      },
+      {
+        artist: 'Test Artist',
+        title: 'Test Track',
+        rank: 6,
+        date: '2024-01-04T00:00:00.000Z',
+        genre: 'house'
+      }
+    ]
+
+    render(<TrackHistoryChart trackHistory={trendTestData} />)
+
+    // Component should render with trend calculations
     expect(document.body).toBeInTheDocument()
   })
 

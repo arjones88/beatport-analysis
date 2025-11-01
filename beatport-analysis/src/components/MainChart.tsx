@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import "../App.css";
 
-type Track = { genre: string; title: string; artist?: string; rank?: number; date?: string; trend?: number; firstAppeared?: string };
+type Track = { genre: string; title: string; artist?: string; rank?: number; date?: string; scraped_at?: string; trend?: number; firstAppeared?: string };
 type Genre = { name: string; url: string };
 
 const GENRES: Genre[] = [
@@ -145,20 +145,20 @@ export default function MainChart() {
       return track.date! > latest ? track.date! : latest;
     }, allTracks[0].date!);
 
-    // Filter by genre and latest date, then remove duplicates keeping only the highest ranked (lowest rank number)
+    // Filter by genre and latest date, then remove duplicates keeping only the most recent data
     const genreTracks = allTracks.filter(t => t.genre === slug && t.date === latestDate);
 
-    // Remove duplicates by title+artist, keeping the one with the best rank (lowest number)
+    // Remove duplicates by title+artist, keeping the most recent data based on scraped_at
     const seen = new Set<string>();
     const deduplicated = genreTracks
-      .sort((a, b) => (Number(a.rank ?? Infinity) - Number(b.rank ?? Infinity))) // Sort by rank first
+      .sort((a, b) => new Date(b.scraped_at ?? b.date ?? 0).getTime() - new Date(a.scraped_at ?? a.date ?? 0).getTime()) // Sort by scraped_at descending (most recent first)
       .filter(track => {
         const key = `${track.title.toLowerCase().trim()}-${(track.artist || '').toLowerCase().trim()}`;
         if (seen.has(key)) {
           return false; // Skip duplicate
         }
         seen.add(key);
-        return true; // Keep first occurrence (best rank)
+        return true; // Keep first occurrence (most recent)
       });
 
     setTracks(deduplicated);
@@ -183,14 +183,14 @@ export default function MainChart() {
       trackMap.get(key)!.push(track);
     });
 
-    // For each group, compute trend by comparing best ranks between consecutive dates
+    // For each group, compute trend by comparing ranks between consecutive dates using most recent data
     const result: Track[] = [];
     trackMap.forEach(group => {
-      // Group by date and find best rank for each date
+      // Group by date and find most recent data for each date
       const dateMap = new Map<string, Track>();
       group.forEach(track => {
         const existing = dateMap.get(track.date!);
-        if (!existing || (track.rank ?? Infinity) < (existing.rank ?? Infinity)) {
+        if (!existing || new Date(track.scraped_at ?? track.date!) > new Date(existing.scraped_at ?? existing.date!)) {
           dateMap.set(track.date!, track);
         }
       });

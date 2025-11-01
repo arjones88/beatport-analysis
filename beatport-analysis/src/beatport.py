@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import requests
 from bs4 import BeautifulSoup
-from datetime import date
+from datetime import date, datetime
 import psycopg2
 from psycopg2.extras import execute_batch
 
@@ -244,6 +244,7 @@ def create_table_if_not_exists(conn):
     title VARCHAR(255),
     rank INTEGER,
     date DATE,
+    scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     genre VARCHAR(255)
   );
   """
@@ -268,13 +269,14 @@ def write_db(rows: List[Dict[str, str]]) -> None:
 
   # Prepare tuples for insert
   today = date.today()
+  now = datetime.now()
   records = []
   for r in rows:
     artist = _truncate(r.get("artists", ""))  # store artists into artist column per schema
     title = _truncate(r.get("title", ""))
     rank = int(r.get("rank") or 0)
     genre = _truncate(r.get("genre", ""))
-    records.append((artist, title, rank, today, genre))
+    records.append((artist, title, rank, today, now, genre))
 
   conn = _pg_conn()
   try:
@@ -282,7 +284,7 @@ def write_db(rows: List[Dict[str, str]]) -> None:
     with conn.cursor() as cur:
       execute_batch(
         cur,
-        "INSERT INTO beatport_top100 (artist, title, rank, date, genre) VALUES (%s, %s, %s, %s, %s)",
+        "INSERT INTO beatport_top100 (artist, title, rank, date, scraped_at, genre) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (artist, title, date, genre) DO UPDATE SET rank = EXCLUDED.rank, scraped_at = EXCLUDED.scraped_at",
         records,
         page_size=100,
       )
